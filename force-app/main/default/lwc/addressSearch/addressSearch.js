@@ -1,5 +1,7 @@
 import { api, LightningElement, track, wire } from 'lwc'
 
+import getDetails from '@salesforce/apex/Google.addressDetails'
+
 import search from '@salesforce/apex/Google.addressAutoComplete'
 
 /** The delay used when debouncing event handlers before invoking Apex. */
@@ -65,10 +67,75 @@ export default class AddressSearch extends LightningElement {
 
         this.selected = this.searchResults.find(result => result.id === selectedId)
         this.query = this.selected.full
-        this.value = this.selected.full
+        //this.value = this.selected.full
         this.searchResults = []
 
-        this.dispatchEvent(new CustomEvent('selected', { detail: this.selected }))
+        this.getDetails(this.selected.id)
+    }
+    handleResultClick(event){
+        
+        const selectedId = event.currentTarget.dataset.id
+
+        this.selected = this.searchResults.find(result => result.id === selectedId)
+        this.query = this.selected.full
+        //this.value = formatData(this.selected)
+        this.searchResults = []
+            
+        this.getDetails(this.selected.id)
+    }
+
+
+    
+    // todo parse out geo coords
+    async getDetails(place_id){
+        //console.log('details  '+place_id)
+        try {
+
+            if(!this.selected){ return }
+            
+            const result = await getDetails({ place_id })
+            //console.log(JSON.parse(JSON.stringify({'detailResults': result})))
+            
+            this.selected_detail = JSON.parse(result)
+            this.current_street = ''
+
+
+            this.selected_detail.result.address_components.map(part => {
+                if(part.types.includes("street_number")){
+                    this.current_street = part.short_name
+                }
+                if(part.types.includes("route")){
+                    this.street = `${this.current_street} ${part.short_name}`
+                }
+                if(part.types.includes("locality")){
+                    this.city = part.short_name
+                }
+                if(part.types.includes("administrative_area_level_2")){
+                    this.selected_county = part.short_name.replace(' County', '')
+                    //console.log(this.counties)
+                    //console.log(part.short_name.replace(' County', ''))
+                    const match = this.counties.find(c => c.value === this.selected_county)
+                    if(match){
+                        //console.log('we have a county MATCH ', match)
+                        this.county = this.selected_county
+                    }
+                }
+                if(part.types.includes("administrative_area_level_1")){
+                    this.state = part.short_name
+                }
+                if(part.types.includes("country")){
+                    this.country = part.short_name
+                }
+                if(part.types.includes("postal_code")){
+                    this.zip = part.short_name
+                }
+            })
+
+            this.dispatchEvent(new CustomEvent('selected', { detail: this.getValues() }))
+        }
+        catch (error) {
+            console.error(error)
+        }
     }
 }
 
