@@ -4,6 +4,6 @@
     <protected>false</protected>
     <values>
         <field>API_Key__c</field>
-        <value xsi:type="xsd:string">[PUT YOUR API KEY HERE]</value>
+        <value xsi:type="xsd:string">AIzaSyByzHSlknM_7WBa-d6YLMnoP4oO2nKMY1M</value>
     </values>
 </CustomMetadata>
